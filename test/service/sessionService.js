@@ -21,18 +21,14 @@ describe('session service test', function() {
         uid.should.equal(euid);
       });
 
-      service.bind(sid, uid, function(err) {
-        should.not.exist(err);
+      service.bindAsync(sid, uid).then(function() {
         var sessions = service.getByUid(uid);
         should.exist(sessions);
         sessions.length.should.equal(1);
         session.should.eql(sessions[0]);
         eventCount.should.equal(1);
-        service.bind(sid, uid, function(err) {
-          should.not.exist(err);
-          done();
-        });
-      });
+        return service.bindAsync(sid, uid)
+      }).then(done);
     });
     it('should fail if already binded uid', function(done) {
       var service = new SessionService();
@@ -43,7 +39,7 @@ describe('session service test', function() {
 
       service.bind(sid, uid, null);
 
-      service.bind(sid, test_uid, function(err) {
+      service.bindAsync(sid, test_uid).then().catch(function(err) {
         should.exist(err);
         done();
       });
@@ -52,7 +48,7 @@ describe('session service test', function() {
       var service = new SessionService();
       var sid = 1, uid = 'changchang';
 
-      service.bind(sid, uid, function(err) {
+      service.bindAsync(sid, uid).then().catch(function(err) {
         should.exist(err);
         done();
       });
@@ -65,7 +61,7 @@ describe('session service test', function() {
       var sid = 1;
       var uid = 'py';
   
-      service.unbind(sid, uid, function(err) {
+      service.unbindAsync(sid, uid).then().catch(function(err) {
         should.exist(err);
         done();
       });      
@@ -77,7 +73,7 @@ describe('session service test', function() {
 
       var session = service.create(sid, fid, socket);
 
-      service.unbind(sid, uid, function(err) {
+      service.unbindAsync(sid, uid).then().catch(function(err) {
         should.exist(err);
         done();
       });
@@ -90,8 +86,7 @@ describe('session service test', function() {
       var session = service.create(sid, fid, socket);
       service.bind(sid, uid, null);
 
-      service.unbind(sid, uid, function(err) {
-        should.not.exist(err);
+      service.unbindAsync(sid, uid).then(function() {
         var sessions = service.getByUid(uid);
         should.not.exist(sessions);
         done();
@@ -107,7 +102,7 @@ describe('session service test', function() {
 
       var session = service.create(sid, fid, socket);
 
-      service.bind(sid, uid, function(err) {
+      service.bindAsync(sid, uid).then(function() {
         service.remove(sid);
         should.not.exist(service.get(sid));
         should.not.exist(service.getByUid(uid));
@@ -124,8 +119,7 @@ describe('session service test', function() {
 
       var session = service.create(sid, fid, socket);
 
-      service.import(sid, key, value, function(err) {
-        should.not.exist(err);
+      service.importAsync(sid, key, value).then(function() {
         value.should.eql(session.get(key));
         done();
       });
@@ -136,7 +130,7 @@ describe('session service test', function() {
       var sid = 1;
       var key = 'key-1', value = 'value-1';
 
-      service.import(sid, key, value, function(err) {
+      service.importAsync(sid, key, value).then().catch(function(err) {
         should.exist(err);
         done();
       });
@@ -153,8 +147,7 @@ describe('session service test', function() {
 
       var session = service.create(sid, fid, socket);
 
-      service.importAll(sid, settings, function(err) {
-        should.not.exist(err);
+      service.importAllAsync(sid, settings).then(function() {
         value.should.eql(session.get(key));
         value2.should.eql(session.get(key2));
         done();
@@ -166,7 +159,7 @@ describe('session service test', function() {
       var sid = 1;
       var key = 'key-1', value = 'value-1';
 
-      service.import(sid, key, value, function(err) {
+      service.importAsync(sid, key, value).then().catch(function(err) {
         should.exist(err);
         done();
       });
@@ -211,17 +204,16 @@ describe('session service test', function() {
         eventCount++;
       });
 
-      service.bind(sid1, uid, function(err) {
-        service.bind(sid2, uid, function(err) {
-          service.kick(uid, function(err) {
-            should.not.exist(err);
-            should.not.exist(service.get(sid1));
-            should.not.exist(service.get(sid2));
-            should.not.exist(service.getByUid(uid));
-            eventCount.should.equal(2);
-            done();
-          });
-        });
+      service.bindAsync(sid1, uid).then(function() {
+        return service.bindAsync(sid2, uid)
+      }).then(function() {
+        return service.kickAsync(uid)
+      }).then(function() {
+        should.not.exist(service.get(sid1));
+        should.not.exist(service.get(sid2));
+        should.not.exist(service.getByUid(uid));
+        eventCount.should.equal(2);
+        done();
       });
     });
 
@@ -357,8 +349,7 @@ describe('frontend session test', function() {
         uid.should.equal(euid);
       });
 
-      fsession.bind(uid, function(err) {
-        should.not.exist(err);
+      fsession.bindAsync(uid).then(function() {
         var sessions = service.getByUid(uid);
         should.exist(sessions);
         sessions.length.should.equal(1);
@@ -379,8 +370,7 @@ describe('frontend session test', function() {
       var fsession = session.toFrontendSession();
 
       fsession.bind(uid, null);
-      fsession.unbind(uid, function(err) {
-        should.not.exist(err);
+      fsession.unbindAsync(uid).then(function() {
         var sessions = service.getByUid(uid);
         should.not.exist(sessions);
         done();
@@ -417,8 +407,7 @@ describe('frontend session test', function() {
       fsession.set(key, value);
       fsession.set(key2, value2);
 
-      fsession.push(key, function(err) {
-        should.not.exist(err);
+      fsession.pushAsync(key).then(function() {
         value.should.eql(session.get(key));
         should.not.exist(session.get(key2));
         done();
@@ -436,8 +425,7 @@ describe('frontend session test', function() {
       fsession.set(key, value);
       fsession.set(key2, value2);
 
-      fsession.pushAll(function(err) {
-        should.not.exist(err);
+      fsession.pushAllAsync().then(function() {
         value.should.eql(session.get(key));
         value2.should.eql(session.get(key2));
         done();
